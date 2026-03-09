@@ -1,17 +1,45 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronRight, Monitor, Settings, Shield, Target, Users, Bell, RefreshCw } from "lucide-react"
+import { ChevronRight, FolderTree, History, FileText, Package, Bell, RefreshCw, LayoutDashboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import CommandCenterPage from "./command-center/page"
-import AgentNetworkPage from "./agent-network/page"
-import OperationsPage from "./operations/page"
-import IntelligencePage from "./intelligence/page"
-import SystemsPage from "./systems/page"
+import SoftwareTreePage from "./software-tree/page"
+import ComponentHistoryPage from "./component-history/page"
+import ChangeRequestsPage from "./change-requests/page"
+import SoftwarePackagesPage from "./software-packages/page"
+import DashboardOverview from "@/components/dashboard-overview"
 
-export default function TacticalDashboard() {
+export default function SCMDashboard() {
   const [activeSection, setActiveSection] = useState("overview")
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  const currentDate = new Date().toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  })
+
+  const currentTime = new Date().toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+
+  const getSectionTitle = () => {
+    switch (activeSection) {
+      case "overview":
+        return "DASHBOARD"
+      case "tree":
+        return "SOFTWARE TREE"
+      case "history":
+        return "COMPONENT HISTORY"
+      case "change-requests":
+        return "CHANGE REQUESTS"
+      case "packages":
+        return "SOFTWARE PACKAGES"
+      default:
+        return "OVERVIEW"
+    }
+  }
 
   return (
     <div className="flex h-screen">
@@ -22,8 +50,8 @@ export default function TacticalDashboard() {
         <div className="p-4">
           <div className="flex items-center justify-between mb-8">
             <div className={`${sidebarCollapsed ? "hidden" : "block"}`}>
-              <h1 className="text-orange-500 font-bold text-lg tracking-wider">TACTICAL OPS</h1>
-              <p className="text-neutral-500 text-xs">v2.1.7 CLASSIFIED</p>
+              <h1 className="text-orange-500 font-bold text-lg tracking-wider">SCM CONTROL</h1>
+              <p className="text-neutral-500 text-xs">Software Configuration Management</p>
             </div>
             <Button
               variant="ghost"
@@ -39,11 +67,11 @@ export default function TacticalDashboard() {
 
           <nav className="space-y-2">
             {[
-              { id: "overview", icon: Monitor, label: "COMMAND CENTER" },
-              { id: "agents", icon: Users, label: "AGENT NETWORK" },
-              { id: "operations", icon: Target, label: "OPERATIONS" },
-              { id: "intelligence", icon: Shield, label: "INTELLIGENCE" },
-              { id: "systems", icon: Settings, label: "SYSTEMS" },
+              { id: "overview", icon: LayoutDashboard, label: "DASHBOARD" },
+              { id: "tree", icon: FolderTree, label: "SOFTWARE TREE" },
+              { id: "history", icon: History, label: "COMPONENT HISTORY" },
+              { id: "change-requests", icon: FileText, label: "CHANGE REQUESTS" },
+              { id: "packages", icon: Package, label: "SOFTWARE PACKAGES" },
             ].map((item) => (
               <button
                 key={item.id}
@@ -67,9 +95,9 @@ export default function TacticalDashboard() {
                 <span className="text-xs text-white">SYSTEM ONLINE</span>
               </div>
               <div className="text-xs text-neutral-500">
-                <div>UPTIME: 72:14:33</div>
-                <div>AGENTS: 847 ACTIVE</div>
-                <div>MISSIONS: 23 ONGOING</div>
+                <div>EQUIPMENT: 3 ACTIVE</div>
+                <div>COMPONENTS: 10 TRACKED</div>
+                <div>PACKAGES: 5 TOTAL</div>
               </div>
             </div>
           )}
@@ -87,11 +115,13 @@ export default function TacticalDashboard() {
         <div className="h-16 bg-neutral-800 border-b border-neutral-700 flex items-center justify-between px-6">
           <div className="flex items-center gap-4">
             <div className="text-sm text-neutral-400">
-              TACTICAL COMMAND / <span className="text-orange-500">OVERVIEW</span>
+              SCM CONTROL / <span className="text-orange-500">{getSectionTitle()}</span>
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="text-xs text-neutral-500">LAST UPDATE: 05/06/2025 20:00 UTC</div>
+            <div className="text-xs text-neutral-500">
+              LAST UPDATE: {currentDate} {currentTime} UTC
+            </div>
             <Button variant="ghost" size="icon" className="text-neutral-400 hover:text-orange-500">
               <Bell className="w-4 h-4" />
             </Button>
@@ -103,11 +133,11 @@ export default function TacticalDashboard() {
 
         {/* Dashboard Content */}
         <div className="flex-1 overflow-auto">
-          {activeSection === "overview" && <CommandCenterPage />}
-          {activeSection === "agents" && <AgentNetworkPage />}
-          {activeSection === "operations" && <OperationsPage />}
-          {activeSection === "intelligence" && <IntelligencePage />}
-          {activeSection === "systems" && <SystemsPage />}
+          {activeSection === "overview" && <DashboardOverview />}
+          {activeSection === "tree" && <SoftwareTreePage />}
+          {activeSection === "history" && <ComponentHistoryPage />}
+          {activeSection === "change-requests" && <ChangeRequestsPage />}
+          {activeSection === "packages" && <SoftwarePackagesPage />}
         </div>
       </div>
     </div>
