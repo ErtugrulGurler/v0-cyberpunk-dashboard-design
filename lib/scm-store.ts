@@ -302,6 +302,28 @@ export const componentRevisions: ComponentRevision[] = [
     createdBy: "eng_iota",
     createdAt: "2024-03-25",
   },
+  {
+    id: "REV-013",
+    componentId: "CMP-007",
+    revisionNumber: "1.0.0",
+    commitHash: "w9x0y1z2",
+    buildArtifact: "filter_bank_v1.0.0.bin",
+    changeRequestId: null,
+    description: "Initial filter bank release",
+    createdBy: "eng_kappa",
+    createdAt: "2024-03-08",
+  },
+  {
+    id: "REV-014",
+    componentId: "CMP-009",
+    revisionNumber: "1.0.0",
+    commitHash: "a3b4c5d6",
+    buildArtifact: "classifier_v1.0.0.exe",
+    changeRequestId: null,
+    description: "Initial classifier release",
+    createdBy: "eng_lambda",
+    createdAt: "2024-03-12",
+  },
 ]
 
 // Sample Change Request Data
