@@ -117,6 +117,7 @@ export default function SoftwareTreePage() {
               <span className="text-sm text-neutral-400">{tls.name}</span>
             </div>
           </div>
+          <Badge className="bg-orange-500/20 text-orange-400 text-xs border border-orange-500/30">v{tls.version}</Badge>
           <span className="text-xs text-neutral-500">{tlsComponents.length} components</span>
         </div>
         {isExpanded && tlsComponents.map((cmp) => renderComponent(cmp))}
@@ -231,7 +232,11 @@ export default function SoftwareTreePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-neutral-800 rounded p-4">
+              <div className="text-xs text-neutral-400 tracking-wider mb-1">VERSION</div>
+              <div className="text-2xl font-bold text-orange-500 font-mono">v{tls.version}</div>
+            </div>
             <div className="bg-neutral-800 rounded p-4">
               <div className="text-xs text-neutral-400 tracking-wider mb-1">COMPONENTS</div>
               <div className="text-2xl font-bold text-white font-mono">{tlsComponents.length}</div>
