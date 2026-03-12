@@ -12,6 +12,7 @@ export interface TopLevelSoftware {
   equipmentId: string
   partNumber: string
   name: string
+  version: string
   description: string
   createdAt: string
 }
