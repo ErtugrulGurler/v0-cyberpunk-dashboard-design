@@ -12,6 +12,7 @@ export interface TopLevelSoftware {
   equipmentId: string
   partNumberVersion: string // PN + Version combined (e.g., "IFE-SW-100 v2.1.0")
   name: string // Display name only
+  status: "DEV" | "REL" // Development or Released
   createdAt: string
 }
 
@@ -21,6 +22,7 @@ export interface Component {
   partNumberVersion: string // PN + Version combined (e.g., "IFE-SRV-001 v1.0.0")
   name: string // Display name only
   repositoryUrl: string
+  status: "DEV" | "REL" // Development or Released
   createdAt: string
 }
 
