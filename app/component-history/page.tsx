@@ -1,80 +1,60 @@
 "use client"
 
-import { useState, Suspense } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  History,
-  GitCommit,
-  FileCode,
-  User,
-  Calendar,
-  Link2,
-  Box,
-  ArrowLeft,
-  Download,
-  ExternalLink,
-} from "lucide-react"
-import {
-  components,
-  getRevisionsByComponent,
-  getChangeRequestById,
-  getComponentById,
-  getTopLevelSoftwareById,
-  getEquipmentById,
-} from "@/lib/scm-store"
-import type { ComponentRevision } from "@/lib/scm-types"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { History, GitCommit, FileCode, User, Calendar, Box, ArrowLeft, Download } from "lucide-react"
+import type { Component, ComponentRevision } from "@/lib/scm-types"
+
+function StatusBadge({ status }: { status: "DEV" | "REL" }) {
+  return status === "DEV"
+    ? <Badge className="bg-orange-500/20 text-orange-400 border border-orange-500/40 text-xs px-1.5 py-0">DEV</Badge>
+    : <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-xs px-1.5 py-0">REL</Badge>
+}
 
 function ComponentHistoryContent() {
   const searchParams = useSearchParams()
-  const initialComponentId = searchParams.get("id") || ""
+  const initialId = searchParams.get("id") ?? ""
 
-  const [selectedComponentId, setSelectedComponentId] = useState(initialComponentId)
+  const [components, setComponents] = useState<Component[]>([])
+  const [allRevisions, setAllRevisions] = useState<ComponentRevision[]>([])
+  const [selectedComponentId, setSelectedComponentId] = useState(initialId)
   const [selectedRevision, setSelectedRevision] = useState<ComponentRevision | null>(null)
 
-  const selectedComponent = selectedComponentId ? getComponentById(selectedComponentId) : null
-  const revisions = selectedComponentId ? getRevisionsByComponent(selectedComponentId) : []
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/components").then((r) => r.json()),
+      fetch("/api/revisions").then((r) => r.json()),
+    ]).then(([cmp, rev]) => { setComponents(cmp); setAllRevisions(rev) })
+  }, [])
 
-  // Get parent info
-  const topLevelSoftware = selectedComponent
-    ? getTopLevelSoftwareById(selectedComponent.topLevelSoftwareId)
+  const selectedComponent = selectedComponentId
+    ? components.find((c) => String(c.id) === selectedComponentId) ?? null
     : null
-  const equipment = topLevelSoftware ? getEquipmentById(topLevelSoftware.equipmentId) : null
-
-  const handleRevisionClick = (revision: ComponentRevision) => {
-    setSelectedRevision(revision)
-  }
+  const revisions = selectedComponent
+    ? allRevisions.filter((r) => r.componentId === selectedComponent.id)
+    : []
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-wider">COMPONENT HISTORY</h1>
           <p className="text-sm text-neutral-400">View revision history and build artifacts</p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="border-neutral-700 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-300 bg-transparent"
-            onClick={() => (window.location.href = "/software-tree")}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Tree
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          className="border-neutral-700 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-300 bg-transparent"
+          onClick={() => window.history.back()}
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back
+        </Button>
       </div>
 
-      {/* Component Selector */}
       <Card className="bg-neutral-900 border-neutral-700">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
@@ -82,15 +62,15 @@ function ComponentHistoryContent() {
               <Box className="w-5 h-5 text-orange-500" />
               <span className="text-sm text-neutral-400">SELECT COMPONENT:</span>
             </div>
-            <Select value={selectedComponentId} onValueChange={setSelectedComponentId}>
+            <Select value={selectedComponentId} onValueChange={(v) => { setSelectedComponentId(v); setSelectedRevision(null) }}>
               <SelectTrigger className="w-full sm:w-96 bg-neutral-800 border-neutral-700 text-white">
                 <SelectValue placeholder="Choose a component..." />
               </SelectTrigger>
               <SelectContent className="bg-neutral-800 border-neutral-700">
-                {components.map((cmp) => (
-                  <SelectItem key={cmp.id} value={cmp.id} className="text-white hover:bg-neutral-700">
-                    <span className="font-mono text-orange-500">{cmp.partNumber}</span>
-                    <span className="ml-2 text-neutral-400">{cmp.name}</span>
+                {components.map((c) => (
+                  <SelectItem key={c.id} value={String(c.id)} className="text-white hover:bg-neutral-700 focus:bg-neutral-700">
+                    <span className="font-mono text-orange-500">{c.partNumber}</span>
+                    <span className="ml-2 text-neutral-400">{c.name}</span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -101,247 +81,117 @@ function ComponentHistoryContent() {
 
       {selectedComponent && (
         <>
-          {/* Component Info */}
           <Card className="bg-neutral-900 border-neutral-700">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-neutral-300 tracking-wider">
-                COMPONENT INFORMATION
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-neutral-300 tracking-wider">COMPONENT INFORMATION</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <div className="text-xs text-neutral-400 tracking-wider mb-1">PART NUMBER</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                <div className="p-3 bg-neutral-800 rounded">
+                  <div className="text-neutral-500 mb-1">ID (PK)</div>
+                  <div className="text-white font-mono">{selectedComponent.id}</div>
+                </div>
+                <div className="p-3 bg-neutral-800 rounded">
+                  <div className="text-neutral-500 mb-1">PART NUMBER</div>
                   <div className="text-white font-mono">{selectedComponent.partNumber}</div>
                 </div>
-                <div>
-                  <div className="text-xs text-neutral-400 tracking-wider mb-1">NAME</div>
-                  <div className="text-white">{selectedComponent.name}</div>
+                <div className="p-3 bg-neutral-800 rounded">
+                  <div className="text-neutral-500 mb-1">VERSION</div>
+                  <div className="text-white font-mono">v{selectedComponent.version}</div>
                 </div>
-                <div>
-                  <div className="text-xs text-neutral-400 tracking-wider mb-1">PARENT</div>
-                  <div className="text-sm">
-                    <span className="text-neutral-400">{equipment?.name}</span>
-                    <span className="text-neutral-600 mx-1">/</span>
-                    <span className="text-white">{topLevelSoftware?.name}</span>
-                  </div>
+                <div className="p-3 bg-neutral-800 rounded">
+                  <div className="flex items-center gap-2 mb-1"><div className="text-neutral-500">STATUS</div></div>
+                  <StatusBadge status={selectedComponent.status} />
                 </div>
-                <div>
-                  <div className="text-xs text-neutral-400 tracking-wider mb-1">REPOSITORY</div>
-                  <a
-                    href={selectedComponent.repositoryUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-orange-500 hover:text-orange-400 text-sm"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    View Repo
-                  </a>
-                </div>
+              </div>
+              <div className="mt-3 p-3 bg-neutral-800 rounded text-xs">
+                <div className="text-neutral-500 mb-1">REPOSITORY</div>
+                <div className="text-orange-400 font-mono break-all">{selectedComponent.repositoryUrl}</div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Main Content */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Revision List */}
-            <Card className="lg:col-span-7 bg-neutral-900 border-neutral-700">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium text-neutral-300 tracking-wider">
-                    REVISION HISTORY
-                  </CardTitle>
-                  <Badge className="bg-neutral-700 text-neutral-300">{revisions.length} revisions</Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {revisions.length === 0 ? (
-                  <div className="text-center py-8 text-neutral-500">
-                    <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p className="text-sm">No revisions found for this component</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                    {[...revisions].reverse().map((revision, index) => {
-                      const relatedCR = revision.changeRequestId
-                        ? getChangeRequestById(revision.changeRequestId)
-                        : null
-
-                      return (
-                        <div
-                          key={revision.id}
-                          className={`p-4 rounded cursor-pointer transition-colors border ${
-                            selectedRevision?.id === revision.id
-                              ? "bg-orange-500/20 border-orange-500/50"
-                              : "bg-neutral-800 border-neutral-700 hover:border-orange-500/30"
-                          }`}
-                          onClick={() => handleRevisionClick(revision)}
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <Badge
-                                className={`${
-                                  index === 0
-                                    ? "bg-orange-500/20 text-orange-500"
-                                    : "bg-neutral-700 text-neutral-300"
-                                }`}
-                              >
-                                v{revision.revisionNumber}
-                              </Badge>
-                              {index === 0 && (
-                                <Badge className="bg-white/20 text-white text-xs">LATEST</Badge>
-                              )}
-                            </div>
-                            <span className="text-xs text-neutral-500 font-mono">{revision.id}</span>
-                          </div>
-
-                          <p className="text-sm text-neutral-300 mb-3">{revision.description}</p>
-
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div className="flex items-center gap-1 text-neutral-400">
-                              <GitCommit className="w-3 h-3" />
-                              <span className="font-mono text-orange-500">{revision.commitHash}</span>
-                            </div>
-                            <div className="flex items-center gap-1 text-neutral-400">
-                              <FileCode className="w-3 h-3" />
-                              <span className="font-mono">{revision.buildArtifact}</span>
-                            </div>
-                            <div className="flex items-center gap-1 text-neutral-400">
-                              <User className="w-3 h-3" />
-                              <span className="font-mono">{revision.createdBy}</span>
-                            </div>
-                            <div className="flex items-center gap-1 text-neutral-400">
-                              <Calendar className="w-3 h-3" />
-                              <span className="font-mono">{revision.createdAt}</span>
-                            </div>
-                          </div>
-
-                          {relatedCR && (
-                            <div className="mt-3 pt-3 border-t border-neutral-700">
-                              <div className="flex items-center gap-2 text-xs">
-                                <Link2 className="w-3 h-3 text-orange-500" />
-                                <span className="text-neutral-400">Related CR:</span>
-                                <span className="text-orange-500 font-mono">{relatedCR.crNumber}</span>
-                                <span className="text-neutral-300">- {relatedCR.title}</span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Revision Details */}
             <Card className="lg:col-span-5 bg-neutral-900 border-neutral-700">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-neutral-300 tracking-wider">
-                  REVISION DETAILS
+                  REVISIONS ({revisions.length})
                 </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="max-h-[480px] overflow-y-auto">
+                  {revisions.map((rev) => (
+                    <div
+                      key={rev.id}
+                      onClick={() => setSelectedRevision(rev)}
+                      className={`p-4 border-b border-neutral-800 cursor-pointer transition-colors ${selectedRevision?.id === rev.id ? "bg-orange-500/10 border-l-2 border-l-orange-500" : "hover:bg-neutral-800"}`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <Badge className="bg-neutral-700 text-neutral-300 text-xs">{rev.revisionNumber}</Badge>
+                        <span className="text-xs font-mono text-neutral-500">{rev.commitHash.slice(0, 7)}</span>
+                      </div>
+                      <p className="text-xs text-neutral-300 mb-1 line-clamp-2">{rev.description}</p>
+                      <div className="flex items-center gap-3 text-xs text-neutral-500">
+                        <span className="font-mono">{rev.createdBy}</span>
+                        <span>{rev.createdAt}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {revisions.length === 0 && (
+                    <div className="p-8 text-center text-neutral-500">
+                      <History className="w-10 h-10 mx-auto mb-2 opacity-40" />
+                      <p className="text-sm">No revisions found</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="lg:col-span-7 bg-neutral-900 border-neutral-700">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-neutral-300 tracking-wider">REVISION DETAILS</CardTitle>
               </CardHeader>
               <CardContent>
                 {selectedRevision ? (
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-3">
-                      <History className="w-8 h-8 text-orange-500" />
-                      <div>
-                        <h2 className="text-xl font-bold text-white font-mono">
-                          v{selectedRevision.revisionNumber}
-                        </h2>
-                        <p className="text-sm text-neutral-400 font-mono">{selectedRevision.id}</p>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <Badge className="bg-neutral-700 text-neutral-300">{selectedRevision.revisionNumber}</Badge>
+                      <span className="text-xs font-mono text-neutral-500">{selectedRevision.commitHash}</span>
+                    </div>
+                    <p className="text-sm text-neutral-300 bg-neutral-800 rounded p-3">{selectedRevision.description}</p>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div className="p-3 bg-neutral-800 rounded">
+                        <div className="flex items-center gap-1 text-neutral-500 mb-1"><User className="w-3 h-3" />AUTHOR</div>
+                        <div className="text-white font-mono">{selectedRevision.createdBy}</div>
+                      </div>
+                      <div className="p-3 bg-neutral-800 rounded">
+                        <div className="flex items-center gap-1 text-neutral-500 mb-1"><Calendar className="w-3 h-3" />DATE</div>
+                        <div className="text-white font-mono">{selectedRevision.createdAt}</div>
+                      </div>
+                      <div className="p-3 bg-neutral-800 rounded">
+                        <div className="flex items-center gap-1 text-neutral-500 mb-1"><GitCommit className="w-3 h-3" />COMMIT</div>
+                        <div className="text-white font-mono break-all">{selectedRevision.commitHash}</div>
+                      </div>
+                      <div className="p-3 bg-neutral-800 rounded">
+                        <div className="flex items-center gap-1 text-neutral-500 mb-1"><FileCode className="w-3 h-3" />BUILD</div>
+                        <div className="text-white font-mono break-all">{selectedRevision.buildArtifact}</div>
                       </div>
                     </div>
-
-                    <div>
-                      <h3 className="text-sm font-medium text-neutral-300 tracking-wider mb-2">
-                        DESCRIPTION
-                      </h3>
-                      <p className="text-sm text-neutral-400">{selectedRevision.description}</p>
-                    </div>
-
-                    <div className="space-y-3">
-                      <h3 className="text-sm font-medium text-neutral-300 tracking-wider">
-                        BUILD INFORMATION
-                      </h3>
-
-                      <div className="bg-neutral-800 rounded p-3 space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-neutral-400">Commit Hash:</span>
-                          <span className="text-orange-500 font-mono">{selectedRevision.commitHash}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-neutral-400">Build Artifact:</span>
-                          <span className="text-white font-mono">{selectedRevision.buildArtifact}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-neutral-400">Created By:</span>
-                          <span className="text-white font-mono">{selectedRevision.createdBy}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-neutral-400">Created At:</span>
-                          <span className="text-white font-mono">{selectedRevision.createdAt}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {selectedRevision.changeRequestId && (
-                      <div className="space-y-3">
-                        <h3 className="text-sm font-medium text-neutral-300 tracking-wider">
-                          RELATED CHANGE REQUEST
-                        </h3>
-                        {(() => {
-                          const cr = getChangeRequestById(selectedRevision.changeRequestId)
-                          if (!cr) return null
-                          return (
-                            <div className="bg-neutral-800 rounded p-3 space-y-2 text-sm">
-                              <div className="flex justify-between">
-                                <span className="text-neutral-400">CR Number:</span>
-                                <span className="text-orange-500 font-mono">{cr.crNumber}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-neutral-400">Title:</span>
-                                <span className="text-white">{cr.title}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-neutral-400">Status:</span>
-                                <Badge
-                                  className={
-                                    cr.status === "closed"
-                                      ? "bg-white/20 text-white"
-                                      : cr.status === "in_progress"
-                                        ? "bg-orange-500/20 text-orange-500"
-                                        : "bg-neutral-500/20 text-neutral-300"
-                                  }
-                                >
-                                  {cr.status.toUpperCase().replace("_", " ")}
-                                </Badge>
-                              </div>
-                            </div>
-                          )
-                        })()}
-                      </div>
-                    )}
-
-                    <div className="flex gap-2 pt-4 border-t border-neutral-700">
+                    <div className="flex gap-2 pt-2 border-t border-neutral-700">
                       <Button className="bg-orange-500 hover:bg-orange-600 text-white">
                         <Download className="w-4 h-4 mr-2" />
                         Download Artifact
                       </Button>
-                      <Button
-                        variant="outline"
-                        className="border-neutral-700 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-300 bg-transparent"
-                      >
+                      <Button variant="outline" className="border-neutral-700 text-neutral-400 hover:bg-neutral-800 hover:text-white bg-transparent">
                         <GitCommit className="w-4 h-4 mr-2" />
                         View Commit
                       </Button>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center h-64">
+                  <div className="flex items-center justify-center h-48">
                     <div className="text-center text-neutral-500">
-                      <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <History className="w-12 h-12 mx-auto mb-3 opacity-30" />
                       <p className="text-sm">Select a revision to view details</p>
                     </div>
                   </div>
@@ -354,13 +204,10 @@ function ComponentHistoryContent() {
 
       {!selectedComponent && (
         <Card className="bg-neutral-900 border-neutral-700">
-          <CardContent className="p-8">
-            <div className="flex items-center justify-center h-64">
-              <div className="text-center text-neutral-500">
-                <Box className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p className="text-lg mb-2">No Component Selected</p>
-                <p className="text-sm">Select a component from the dropdown to view its revision history</p>
-              </div>
+          <CardContent className="p-8 flex items-center justify-center h-64">
+            <div className="text-center text-neutral-500">
+              <Box className="w-16 h-16 mx-auto mb-3 opacity-30" />
+              <p className="text-sm">Select a component to view its revision history</p>
             </div>
           </CardContent>
         </Card>
@@ -371,13 +218,7 @@ function ComponentHistoryContent() {
 
 export default function ComponentHistoryPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="p-6 flex items-center justify-center h-screen">
-          <div className="text-neutral-400">Loading...</div>
-        </div>
-      }
-    >
+    <Suspense fallback={<div className="p-6 flex items-center justify-center h-screen"><div className="text-neutral-400">Loading...</div></div>}>
       <ComponentHistoryContent />
     </Suspense>
   )
