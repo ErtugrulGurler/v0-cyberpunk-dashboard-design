@@ -6,6 +6,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  allowedDevOrigins: ["*.replit.dev", "*.janeway.replit.dev", "*.replit.app"],
   async headers() {
     return [
       {
