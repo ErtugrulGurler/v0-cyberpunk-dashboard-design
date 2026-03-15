@@ -8,22 +8,19 @@ export interface Equipment {
 }
 
 export interface TopLevelSoftware {
-  id: string
+  id: string // Hidden primary key: topsw-01, topsw-02, etc.
   equipmentId: string
-  partNumber: string
-  name: string
-  version: string
-  description: string
+  partNumberVersion: string // PN + Version combined (e.g., "IFE-SW-100 v2.1.0")
+  name: string // Display name only
   createdAt: string
 }
 
 export interface Component {
-  id: string
+  id: string // Hidden primary key: sw-01, sw-02, etc.
   topLevelSoftwareId: string
-  partNumber: string
-  name: string
+  partNumberVersion: string // PN + Version combined (e.g., "IFE-SRV-001 v1.0.0")
+  name: string // Display name only
   repositoryUrl: string
-  description: string
   createdAt: string
 }
 
